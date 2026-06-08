@@ -147,7 +147,7 @@ function makeBasicPdfBytes(title: string, body: string) {
     const heading = line.match(/^(#{1,3})\s+(.+)$/);
     const bullet = line.match(/^[-*]\s+(.+)$/);
     const size = heading ? (heading[1].length === 1 ? 16 : 13) : 11;
-    const text = heading ? heading[2] : bullet ? `• ${bullet[1]}` : line;
+    const text = heading ? heading[2] : bullet ? `- ${bullet[1]}` : line;
     const maxChars = size >= 16 ? 54 : 82;
     for (const wrapped of wrapPdfLine(text, maxChars)) {
       pushLine(wrapped, size, size >= 16 ? 22 : 15);
@@ -178,7 +178,7 @@ function makeBasicPdfBytes(title: string, body: string) {
 
   objects[2] = `<< /Type /Pages /Kids [${pageRefs.join(" ")}] /Count ${pageRefs.length} >>`;
 
-  let pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+  let pdf = "%PDF-1.4\n";
   const offsets = [0];
   for (let i = 1; i < objects.length; i += 1) {
     offsets[i] = pdf.length;
