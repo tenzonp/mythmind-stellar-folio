@@ -13,7 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import { createDeepSeekProvider, deepseekModelFor, deepseekReasoningModel, messagesHaveAttachments } from "@/lib/deepseek.server";
 import { buildWebTools } from "@/lib/firecrawl-tool.server";
-import { buildSandboxTools, hasE2bSandboxKey } from "@/lib/sandbox-tool.server";
+import { buildSandboxTools } from "@/lib/sandbox-tool.server";
 import { EMPLOYEES, DELEGATABLE_IDS, isEmployeeId } from "@/lib/employees";
 
 // Identity guard prepended to every model call. Prevents the model from
@@ -240,9 +240,7 @@ export const Route = createFileRoute("/api/chat")({
                     const sub = EMPLOYEES[empId];
                     const subStart = Date.now();
                     try {
-                      const sandboxToolsSub = hasE2bSandboxKey()
-                        ? buildSandboxTools({ userId, threadId: body.threadId })
-                        : {};
+                      const sandboxToolsSub = buildSandboxTools({ userId, threadId: body.threadId });
                       const subTools = { ...buildWebTools(), ...imageTool, ...sandboxToolsSub, ...(await loadToolsFor(empId)) };
                       const { text } = await generateText({
                         model,
@@ -274,9 +272,7 @@ export const Route = createFileRoute("/api/chat")({
 
           // imageTool defined above (reused for sub-agents and top-level).
 
-          const sandboxTools = hasE2bSandboxKey()
-            ? buildSandboxTools({ userId, threadId: body.threadId })
-            : {};
+          const sandboxTools = buildSandboxTools({ userId, threadId: body.threadId });
 
           const mergedTools = {
             ...(tools ?? {}),
