@@ -237,6 +237,39 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_otps: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          phone: string
+          purpose: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          phone: string
+          purpose?: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          phone?: string
+          purpose?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -244,9 +277,12 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          phone: string | null
+          phone_verified_at: string | null
           plan: Database["public"]["Enums"]["app_plan"]
           share_slug: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -254,9 +290,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          phone?: string | null
+          phone_verified_at?: string | null
           plan?: Database["public"]["Enums"]["app_plan"]
           share_slug?: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -264,9 +303,12 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          phone?: string | null
+          phone_verified_at?: string | null
           plan?: Database["public"]["Enums"]["app_plan"]
           share_slug?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
