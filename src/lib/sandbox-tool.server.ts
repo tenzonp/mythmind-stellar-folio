@@ -311,6 +311,20 @@ export function buildSandboxTools(ctx: Ctx) {
       }),
       execute: async ({ filename, title, body }) => {
         const fname = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+        if (!hasE2bSandboxKey()) {
+          try {
+            const pdfBytes = makeBasicPdfBytes(title, body);
+            const pdf = await uploadArtifact({
+              ctx,
+              filename: fname,
+              bytes: pdfBytes,
+              contentType: "application/pdf",
+            });
+            return { ok: true, url: pdf.url, filename: pdf.filename, markdown: `[${pdf.filename}](${pdf.url})` };
+          } catch (e) {
+            return { ok: false, error: e instanceof Error ? e.message : String(e) };
+          }
+        }
         let sbx: Sandbox | null = null;
         try {
           sbx = await newSandbox();
