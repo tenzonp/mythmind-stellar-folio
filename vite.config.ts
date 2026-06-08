@@ -19,6 +19,14 @@ export default defineConfig({
   ...(isVercel && {
     nitro: {
       preset: "vercel",
+      // Nitro supports this Vercel option, but the Lovable config wrapper
+      // exposes a narrower type. Keep it here so Vercel uses Node 20, not 24.
+      // @ts-expect-error - passed through to Nitro at build time
+      vercel: {
+        functions: {
+          runtime: "nodejs20.x",
+        },
+      },
     },
   }),
 });

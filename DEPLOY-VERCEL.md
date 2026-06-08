@@ -13,7 +13,8 @@ SSR + server functions as Vercel Serverless Functions.
 - **Install command:** `bun install` (already in `vercel.json`). If your team
   prefers npm/pnpm, change it in the Vercel dashboard — the lockfile is the
   one Bun writes, so Bun is recommended.
-- **Node.js version:** 20.x (Vercel default — fine)
+- **Node.js version:** 20.x (pinned in `package.json` and Nitro's Vercel
+  output so Vercel does not auto-select a newer unsupported runtime)
 
 ## 2. Environment variables
 
