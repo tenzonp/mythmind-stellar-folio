@@ -240,9 +240,7 @@ export const Route = createFileRoute("/api/chat")({
                     const sub = EMPLOYEES[empId];
                     const subStart = Date.now();
                     try {
-                      const sandboxToolsSub = process.env.E2B_API_KEY
-                        ? buildSandboxTools({ userId, threadId: body.threadId })
-                        : {};
+                      const sandboxToolsSub = buildSandboxTools({ userId, threadId: body.threadId });
                       const subTools = { ...buildWebTools(), ...imageTool, ...sandboxToolsSub, ...(await loadToolsFor(empId)) };
                       const { text } = await generateText({
                         model,
@@ -274,9 +272,7 @@ export const Route = createFileRoute("/api/chat")({
 
           // imageTool defined above (reused for sub-agents and top-level).
 
-          const sandboxTools = process.env.E2B_API_KEY
-            ? buildSandboxTools({ userId, threadId: body.threadId })
-            : {};
+          const sandboxTools = buildSandboxTools({ userId, threadId: body.threadId });
 
           const mergedTools = {
             ...(tools ?? {}),
