@@ -1,0 +1,1 @@
+ALTER TABLE public.task_completions ADD COLUMN IF NOT EXISTS deliverable_text TEXT;
