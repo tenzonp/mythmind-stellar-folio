@@ -935,7 +935,11 @@ function MessageBubble({
                       ) : (
                         <Sparkles className="size-3.5 text-[var(--ember)] animate-pulse" />
                       )}
-                      Lin delegated to {target?.name ?? input.employee ?? "specialist"}
+                      {target?.name
+                        ? `Lin delegated to ${target.name}`
+                        : input.employee
+                          ? `Lin delegated to ${input.employee}`
+                          : "Lin is choosing a specialist…"}
                     </div>
                     {target && (
                       <div className="text-[10px] text-muted-foreground">{target.role}</div>
