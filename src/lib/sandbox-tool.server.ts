@@ -20,10 +20,22 @@ type Ctx = {
 };
 
 const WORKDIR = "/home/user/work";
+const E2B_KEY_PATTERN = /^e2b_[0-9a-fA-F]+$/;
+
+function getE2bApiKey() {
+  const apiKey = process.env.E2B_API_KEY?.trim();
+  return apiKey && E2B_KEY_PATTERN.test(apiKey) ? apiKey : null;
+}
+
+export function hasE2bSandboxKey() {
+  return Boolean(getE2bApiKey());
+}
 
 async function newSandbox() {
-  const apiKey = process.env.E2B_API_KEY;
-  if (!apiKey) throw new Error("E2B_API_KEY is not configured");
+  const apiKey = getE2bApiKey();
+  if (!apiKey) {
+    throw new Error("Mythmind compute is temporarily unavailable. PDF creation still works, but code execution and deck generation need a valid compute key.");
+  }
   const sbx = await Sandbox.create({ apiKey, timeoutMs: 120_000 });
   await sbx.commands.run(`mkdir -p ${WORKDIR}`);
   return sbx;
@@ -75,6 +87,110 @@ function contentTypeFor(name: string): string {
     svg: "image/svg+xml",
   };
   return map[ext] ?? "application/octet-stream";
+}
+
+function escapePdfText(input: string) {
+  return input
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
+}
+
+function wrapPdfLine(text: string, maxChars: number) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.length ? lines : [""];
+}
+
+function makeBasicPdfBytes(title: string, body: string) {
+  const pageWidth = 612;
+  const pageHeight = 792;
+  const marginX = 54;
+  const topY = 742;
+  const bottomY = 54;
+  const pages: Array<Array<{ text: string; size: number; gap: number }>> = [[]];
+  let y = topY;
+
+  const pushLine = (text: string, size = 11, gap = 15) => {
+    if (y - gap < bottomY) {
+      pages.push([]);
+      y = topY;
+    }
+    pages[pages.length - 1].push({ text, size, gap });
+    y -= gap;
+  };
+
+  pushLine(title, 20, 28);
+  y -= 8;
+
+  for (const raw of body.split("\n")) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      y -= 8;
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    const bullet = line.match(/^[-*]\s+(.+)$/);
+    const size = heading ? (heading[1].length === 1 ? 16 : 13) : 11;
+    const text = heading ? heading[2] : bullet ? `• ${bullet[1]}` : line;
+    const maxChars = size >= 16 ? 54 : 82;
+    for (const wrapped of wrapPdfLine(text, maxChars)) {
+      pushLine(wrapped, size, size >= 16 ? 22 : 15);
+    }
+    if (heading) y -= 4;
+  }
+
+  const objects: string[] = [];
+  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  const pageRefs: string[] = [];
+
+  for (const page of pages) {
+    const pageObj = objects.length;
+    const contentObj = pageObj + 1;
+    pageRefs.push(`${pageObj} 0 R`);
+    let cursorY = topY;
+    const stream = page
+      .map((line) => {
+        const op = `BT /F1 ${line.size} Tf ${marginX} ${cursorY} Td (${escapePdfText(line.text)}) Tj ET`;
+        cursorY -= line.gap;
+        return op;
+      })
+      .join("\n");
+    objects[pageObj] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentObj} 0 R >>`;
+    objects[contentObj] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  }
+
+  objects[2] = `<< /Type /Pages /Kids [${pageRefs.join(" ")}] /Count ${pageRefs.length} >>`;
+
+  let pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+  const offsets = [0];
+  for (let i = 1; i < objects.length; i += 1) {
+    offsets[i] = pdf.length;
+    pdf += `${i} 0 obj\n${objects[i]}\nendobj\n`;
+  }
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (let i = 1; i < objects.length; i += 1) {
+    pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
 }
 
 /**
