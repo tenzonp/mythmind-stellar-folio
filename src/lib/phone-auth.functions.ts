@@ -170,9 +170,11 @@ export const verifyPhoneOtp = createServerFn({ method: "POST" })
       });
       if (updErr) throw new Error(updErr.message);
 
-      const patch: Record<string, unknown> = {
-        phone_verified_at: new Date().toISOString(),
-      };
+      const patch: {
+        phone_verified_at: string;
+        display_name?: string;
+        username?: string;
+      } = { phone_verified_at: new Date().toISOString() };
       if (data.name) patch.display_name = data.name;
       if (data.username) patch.username = data.username;
       await supabaseAdmin.from("profiles").update(patch).eq("id", userId);
